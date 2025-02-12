@@ -7,7 +7,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import * as yup from 'yup';
 import dayjs from "dayjs";
 import Grid from '@mui/material/Grid2';
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 
 const schema = yup.object().shape({
@@ -15,8 +15,8 @@ const schema = yup.object().shape({
   LastName: yup.string().required("Last Name is required"),
   DateOfBirth: yup.string().required("Date Of Birth is Required"),
   Address:yup.string().required("Address is required"),
-  CountryCode:yup.string().required("Country Code is required"),
-  MobileNumber:yup.string().min(10).max(10).required("Mobile Number is required"),
+  CountryCode:yup.string().matches(/^\+[1-9]{1,3}$/).required("Country Code is required"),
+  MobileNumber:yup.string().length(10).required("Mobile Number is required"),
   Hobbies: yup.array()
   .min(1, "You can't leave this blank.")
   .required("You can't leave this blank.")
@@ -38,7 +38,8 @@ function App() {
     handleSubmit, 
     formState: { errors }, 
     reset,
-    control
+    control,
+    setError
   } = useForm<FromFields>({
     resolver: yupResolver(schema),
     defaultValues: { Skills: [] }
@@ -53,10 +54,36 @@ function App() {
 
 
   const OnSubmit:SubmitHandler<FromFields> = (data) =>{
-    console.log(data);
-    setSumitedDetails([data, ...submitedDetails]);
-    reset();
+    try {
+      const pattern = /^\+[1-9]{1,3}[ -]?(\d[ -]?){6,14}\d$/;
+  
+      if (pattern.test(`${data.CountryCode}${data.MobileNumber}`)) {
+        setSumitedDetails((prevDetails) => {
+          const updatedDetails = [data, ...prevDetails];
+
+          localStorage.setItem("submits", JSON.stringify(updatedDetails));
+  
+          return updatedDetails;
+        });
+        reset();  
+      } else {
+        throw new Error("Phone no mismatch");
+      }
+  
+    } catch (error) {
+      setError("root", {
+        message: "Phone number or country code not valid!"
+      });
+    }
   }
+
+  useEffect(()=>{
+    setSumitedDetails(
+      localStorage.getItem("submits")
+        ? JSON.parse(localStorage.getItem("submits") as string)
+        : []
+    );
+  },[])
 
 
 
@@ -144,7 +171,7 @@ function App() {
           {fields.map((field, index) => (
             <Box sx={{ display: 'flex' }} key={field.id}>
               <Controller
-                render={({ field }) => <TextField {...field} />}
+                render={({ field }) => <TextField {...field} label={`Skill ${index + 1}`}/>}
                 name={`Skills.${index}`}
                 control={control}
               />
@@ -170,6 +197,7 @@ function App() {
           <p style={{color:"red"}}>{errors.Skills?.message}</p>
 
 
+          <p style={{color:"red"}}>{errors.root?.message}</p>
 
           <Box sx={{width:"100%",margin:'12px 0px' }}>
             <Button  variant="outlined" loadingPosition="end" type="submit">
