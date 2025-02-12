@@ -41,6 +41,7 @@ function App() {
     control
   } = useForm<FromFields>({
     resolver: yupResolver(schema),
+    defaultValues: { Skills: [] }
   })
 
   const { fields, append, remove } = useFieldArray({
@@ -53,14 +54,7 @@ function App() {
 
   const OnSubmit:SubmitHandler<FromFields> = (data) =>{
     console.log(data);
-
-    try {
-      const pattern = /^[+]{1}(?:[0-9\-\\(\\)\\/.]\s?){6,15}[0-9]{1}$/;
-    } catch (error) {
-      
-    }
     setSumitedDetails([data, ...submitedDetails]);
-    fields.map((index:number)=>remove(index))
     reset();
   }
 
